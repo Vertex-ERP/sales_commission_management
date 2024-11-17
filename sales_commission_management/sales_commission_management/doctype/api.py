@@ -33,6 +33,7 @@ def get_commission_details(sales_invoice_name, scheduling_name):
         field = record.get("doctype_field")
         earn_commission = record.get("earn_commission")
 
+
         if doctype == "Lead" and lead_name:
             field_value = frappe.get_value(doctype, {"name": lead_name}, field)
         elif doctype == "Opportunity" and opportunity:
@@ -54,13 +55,13 @@ def get_commission_details(sales_invoice_name, scheduling_name):
     for field, values in duplicate_fields.items():
         for field_value in set(values):  # Use set to avoid duplicate values
             earn_commission = next(
-                (record["earn_commission"] for record in scheduling_records if record["doctype_field"] == field and record["earn_commission"] == "1"),
+                (record["earn_commission"] for record in scheduling_records if record["doctype_field"] == field and record["earn_commission"] =="1" ),
                 None
             )
-            frappe.msgprint(f"Value for {earn_commission}: {field_value} is returned as earn_commission is 1.")
-            dynamic_results[field] = field_value
-            frappe.msgprint(f"Value for {field}: {field_value} is returned as earn_commission is 1.")
-       
+         
+            if earn_commission=="1" :
+                dynamic_results[field] = field_value
+
 
 
     return dynamic_results

@@ -5,7 +5,6 @@ frappe.ui.form.on("Sales Invoice", {
    
       yf_scheduling_name: function(frm) {
             if (!frm.is_new()) {
-                console.log("Starting commission details retrieval for Sales Invoice:", frm.doc.name);
     
                 frappe.call({
                     method: "sales_commission_management.sales_commission_management.doctype.api.get_commission_details",
@@ -14,7 +13,6 @@ frappe.ui.form.on("Sales Invoice", {
                         scheduling_name: frm.doc.yf_scheduling_name
                     }
                 }).then(r => {
-                    console.log("Response from get_commission_details:", r);
     
                     if (r.message) {
                         const commission_details = r.message;
@@ -39,7 +37,6 @@ frappe.ui.form.on("Sales Invoice", {
                                     }
                                 }).then(rate_response => {
                                     if (rate_response.message) {
-                                        console.log("Setting commission_rate for", key, ":", rate_response.message);
     
                                         frappe.model.set_value(row.doctype, row.name, 'commission_rate', rate_response.message);
     
@@ -48,7 +45,6 @@ frappe.ui.form.on("Sales Invoice", {
                                             frappe.model.set_value(row.doctype, row.name, 'total_commission', total_commission);
                                         }
                                     } else {
-                                        console.log("No matching rate found for type:", key);
                                     }
                                 });
                             }
@@ -56,6 +52,8 @@ frappe.ui.form.on("Sales Invoice", {
     
                         Promise.all(promises).then(() => {
                             frm.refresh_field("yf_commission_details");
+                            
+
                         });
                     } else {
                         console.log("No commission data found for Sales Invoice:", frm.doc.name);
@@ -75,7 +73,6 @@ frappe.ui.form.on("Sales Invoice", {
                 callback: function(r) {
                     if (r.message && r.message.length > 0) {
                         const default_scheduling_name = r.message[0].name;
-                        console.log("Setting default scheduling name:", default_scheduling_name);
                         frm.set_value("yf_scheduling_name", default_scheduling_name);
 
                         frappe.call({
@@ -85,7 +82,6 @@ frappe.ui.form.on("Sales Invoice", {
                                 scheduling_name: frm.doc.yf_scheduling_name
                             }
                         }).then(r => {
-                            console.log("Response from get_commission_details:", r);
 
                             if (r.message) {
                                 const commission_details = r.message;
@@ -95,7 +91,6 @@ frappe.ui.form.on("Sales Invoice", {
                                 const promises = Object.keys(commission_details).map(key => {
                                     const value = commission_details[key];
                                     if (value) {
-                                        console.log(`Adding row for ${key}: ${value}`);
 
                                         let row = frm.add_child("yf_commission_details", {
                                             sales_partner: value,  
@@ -127,7 +122,10 @@ frappe.ui.form.on("Sales Invoice", {
 
                                 Promise.all(promises).then(() => {
                                     frm.refresh_field("yf_commission_details");
+                                    if (frm.doc.yf_commission_details && frm.doc.yf_commission_details.length > 0) {
+                                        frm.save();}
                                 });
+                                
                             } else {
                                 console.log("No commission data found for Sales Invoice:", frm.doc.name);
                             }
