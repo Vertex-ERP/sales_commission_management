@@ -9,22 +9,9 @@
   "structure_name",
   "default_structure",
   "section_break_gzch",
-  "structure_field",
-  "set_property_after_alert",
-  "document_type"
+  "structure_field"
  ],
  "fields": [
-  {
-   "fieldname": "document_type",
-   "fieldtype": "Link",
-   "label": "Document Type",
-   "options": "DocType"
-  },
-  {
-   "fieldname": "set_property_after_alert",
-   "fieldtype": "Select",
-   "label": "Set Property After Alert"
-  },
   {
    "default": "0",
    "fieldname": "default_structure",
@@ -49,7 +36,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-11-16 13:44:53.597995",
+ "modified": "2024-11-17 17:08:35.373477",
  "modified_by": "Administrator",
  "module": "Sales Commission Management",
  "name": "Commission Structure",

@@ -122,8 +122,8 @@ frappe.ui.form.on("Sales Invoice", {
 
                                 Promise.all(promises).then(() => {
                                     frm.refresh_field("yf_commission_details");
-                                    if (frm.doc.yf_commission_details && frm.doc.yf_commission_details.length > 0) {
-                                        frm.save();}
+                                    // if (frm.doc.yf_commission_details && frm.doc.yf_commission_details.length > 0) {
+                                    //     frm.save();}
                                 });
                                 
                             } else {

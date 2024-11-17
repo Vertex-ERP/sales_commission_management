@@ -34,6 +34,7 @@ override_doctype_class = {
     "Sales Invoice": "sales_commission_management.sales_commission_management.overrides.sales_invoice.CustomSalesInvoice"
  
 }
+fixtures = ["Custom Field", "Property Setter"]
 # Includes in <head>
 # ------------------
 
