@@ -1,0 +1,84 @@
+{
+    "actions": [],
+    "allow_rename": 1,
+    "creation": "2024-08-29 22:43:38.490621",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+     "commission_account",
+     "sales_account",
+     "cost_center",
+     "sales_team_account",
+     "make_gl",
+     "party_type",
+     "account_type"
+    ],
+    "fields": [
+     {
+      "fieldname": "commission_account",
+      "fieldtype": "Link",
+      "label": "Commission Account",
+      "options": "Account"
+     },
+     {
+      "fieldname": "sales_account",
+      "fieldtype": "Link",
+      "label": "Sales Account",
+      "options": "Account"
+     },
+     {
+      "fieldname": "cost_center",
+      "fieldtype": "Link",
+      "label": "Cost Center",
+      "options": "Cost Center"
+     },
+     {
+      "fieldname": "sales_team_account",
+      "fieldtype": "Link",
+      "label": "Sales Team Account",
+      "options": "Account"
+     },
+     {
+      "default": "0",
+      "fieldname": "make_gl",
+      "fieldtype": "Check",
+      "label": "Make Gl "
+     },
+     {
+      "fieldname": "party_type",
+      "fieldtype": "Link",
+      "label": "Type",
+      "options": "Party Type"
+     },
+     {
+      "default": "Payable",
+      "fieldname": "account_type",
+      "fieldtype": "Select",
+      "label": "Account Type",
+      "options": "Payable\nReceivable"
+     }
+    ],
+    "index_web_pages_for_search": 1,
+    "issingle": 1,
+    "links": [],
+    "modified": "2024-11-12 11:39:21.798222",
+    "modified_by": "Administrator",
+    "module": "Sales Commission Management",
+    "name": "Commission Settings",
+    "owner": "Administrator",
+    "permissions": [
+     {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+     }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": []
+   }

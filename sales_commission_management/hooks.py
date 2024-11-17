@@ -20,7 +20,20 @@ app_license = "mit"
 # 		"has_permission": "sales_commission_management.api.permission.has_app_permission"
 # 	}
 # ]
+doctype_js = {
+    
+    "Sales Partner": "public/js/sales_partner.js",
+    "Sales Invoice" : "public/js/sales_invoice.js",
+    "Opportunity" : "public/js/opportunity.js",
 
+ 
+
+ }
+
+override_doctype_class = {
+    "Sales Invoice": "sales_commission_management.sales_commission_management.overrides.sales_invoice.CustomSalesInvoice"
+ 
+}
 # Includes in <head>
 # ------------------
 
