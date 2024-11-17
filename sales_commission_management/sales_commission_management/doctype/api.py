@@ -57,15 +57,14 @@ def get_commission_details(sales_invoice_name, scheduling_name):
                 (record["earn_commission"] for record in scheduling_records if record["doctype_field"] == field and record["earn_commission"] == "1"),
                 None
             )
-            if earn_commission == 1:
-                dynamic_results[field] = field_value
-                frappe.msgprint(f"Value for {field}: {field_value} is returned as earn_commission is 1.")
-            else:
-                frappe.msgprint(f"Value for {field}: {field_value} is skipped as earn_commission is not 1.")
+            frappe.msgprint(f"Value for {earn_commission}: {field_value} is returned as earn_commission is 1.")
+            dynamic_results[field] = field_value
+            frappe.msgprint(f"Value for {field}: {field_value} is returned as earn_commission is 1.")
+       
 
-           
 
     return dynamic_results
+
 
 
 @frappe.whitelist()

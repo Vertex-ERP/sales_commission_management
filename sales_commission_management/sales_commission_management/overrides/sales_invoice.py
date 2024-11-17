@@ -57,6 +57,7 @@ class CustomSalesInvoice(SalesInvoice):
 
 	
 	def on_change(self):
+		
 		msgprint("hi")
 		gl_entries = []
 		self.make_crm_commission_gl_entries(gl_entries)
