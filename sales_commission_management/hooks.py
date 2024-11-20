@@ -35,6 +35,12 @@ override_doctype_class = {
  
 }
 fixtures = ["Custom Field", "Property Setter"]
+# doc_events = {
+#     "Payment Entry": {
+#         "on_submit": "sales_commission_management.sales_commission_management.overrides.sales_invoice.payment_entry_on_submit"
+#     }
+# }
+
 # Includes in <head>
 # ------------------
 

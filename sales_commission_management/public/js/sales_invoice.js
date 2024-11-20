@@ -140,18 +140,11 @@ frappe.ui.form.on("Sales Invoice", {
 });
 frappe.ui.form.on('Commission Table', {
     type: function(frm, cdt, cdn) {
-        // عرض رسالة Console عند بدء استدعاء الدالة
-        console.log("تم تغيير الحقل `type` في جدول `yf_commission_details`");
 
         let row = locals[cdt][cdn];
-        console.log("القيمة المحددة لـ type:", row.type);
-        console.log("القيمة المحددة لـ yf_scheduling_name:", frm.doc.yf_scheduling_name);
-
+       
         if (row.type && frm.doc.yf_scheduling_name) {
-            console.log("بدء استدعاء `get_rate` من الخادم مع المعلمات:");
-            console.log("scheduling_name:", frm.doc.yf_scheduling_name);
-            console.log("type:", row.type);
-
+            
             frappe.call({
                 method: "sales_commission.sales_commission.doctype.api.get_rate", // استبدل `sales_commission` باسم التطبيق الخاص بك
                 args: {
@@ -159,18 +152,15 @@ frappe.ui.form.on('Commission Table', {
                     type: row.type
                 },
                 callback: function(r) {
-                    console.log("تم استلام الرد من الخادم:", r);
                     if (r.message) {
-                        console.log("تم العثور على معدل العمولة:", r.message);
                         frappe.model.set_value(cdt, cdn, 'commission_rate', r.message);
                     } else {
                         console.log("لم يتم العثور على معدل مطابق.");
-                        frappe.msgprint(__('No matching rate found.'));
                     }
                 }
             });
         } else {
-            console.log("لم يتم تعيين `type` أو `yf_scheduling_name`. لم يتم استدعاء الخادم.");
+            console.log("لم يتم تعيين ");
         }
     },
   

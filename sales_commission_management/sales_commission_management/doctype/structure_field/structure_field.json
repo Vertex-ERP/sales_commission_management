@@ -17,7 +17,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Doctype Name",
-   "options": "\nLead\nOpportunity\nSales Order\nSales Invoice"
+   "options": "\nLead\nOpportunity\nQuotation\nSales Order\nSales Invoice"
   },
   {
    "fieldname": "doctype_field",
@@ -32,18 +32,17 @@
    "label": "Rate"
   },
   {
-   "default": "Allow",
+   "default": "1",
    "fieldname": "earn_commission",
-   "fieldtype": "Select",
+   "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Earn Commission",
-   "options": "Allow\nUnAllow"
+   "label": "Earn Commission"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2024-11-17 13:08:27.844458",
+ "modified": "2024-11-18 10:23:15.366779",
  "modified_by": "Administrator",
  "module": "Sales Commission Management",
  "name": "Structure Field",

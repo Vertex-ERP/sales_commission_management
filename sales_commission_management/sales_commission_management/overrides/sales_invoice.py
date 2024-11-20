@@ -26,8 +26,21 @@ from erpnext.accounts.general_ledger import (
 from erpnext.accounts.party import get_party_account
 
 class CustomSalesInvoice(SalesInvoice):
-		is_on_change_in_progress = 10  # علم لمنع التكرار اللانهائي
+		def on_change(self):
+			msgprint("hi")
+			# التحقق من الشرط
+			if  self.outstanding_amount == 0 and not self.get("gl_entries"):
+				# تنفيذ الدالة make_gl_entries
+				gl_entries = []
 
+				self.make_gl_entries(gl_entries)
+				self.db_set("gl_entries", 1) 
+				frappe.msgprint("GL Entries created successfully.")
+
+
+				
+		
+			
 
 		
 		def get_gl_entries(self, warehouse_account=None):
@@ -61,27 +74,20 @@ class CustomSalesInvoice(SalesInvoice):
 
 		
 
-		def on_change(self):
+		def on_update_after_sumbit(self):
 
 			
-			
+			gl_entries = []
+			self.make_crm_commission_gl_entries(gl_entries)
+			self.make_gl_entries(gl_entries)
 
 			# stack = traceback.extract_stack()
 			# for entry in stack:
 			# 	if "on_change" in entry.name:
 			# 		return 
-			if self.is_on_change_in_progress==10:
-				
-				
-				self.is_on_change_in_progress==0
-				msgprint(self.is_on_change_in_progress)
-				
-			else:
-				return	
-
-		
-				
 			
+				
+		
 			
 		def make_crm_commission_gl_entries(self, gl_entries):
 			try:
@@ -144,6 +150,22 @@ class CustomSalesInvoice(SalesInvoice):
 						item=self,
 					)
 				)
+@frappe.whitelist()
+			
 
 	
-   
+def payment_entry_on_submit(doc, method):
+			if doc.references:
+				for reference in doc.references:
+					if reference.reference_doctype == "Sales Invoice":
+						sales_invoice = frappe.get_doc("Sales Invoice", reference.reference_name)
+
+						if flt(reference.allocated_amount) > 0:
+							if reference.reference_name == sales_invoice.name:
+								if flt(sales_invoice.outstanding_amount) == 0:
+									#frappe.msgprint(_("Processing commission for Invoice: {0}").format(sales_invoice.name))
+									gl_entries = []
+									sales_invoice.make_crm_commission_gl_entries(gl_entries)
+									sales_invoice.make_gl_entries(gl_entries)
+												
+			
