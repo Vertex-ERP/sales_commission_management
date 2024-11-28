@@ -26,16 +26,16 @@ from erpnext.accounts.general_ledger import (
 from erpnext.accounts.party import get_party_account
 
 class CustomSalesInvoice(SalesInvoice):
-		def on_change(self):
-			msgprint("hi")
-			# التحقق من الشرط
-			if  self.outstanding_amount == 0 and not self.get("gl_entries"):
-				# تنفيذ الدالة make_gl_entries
-				gl_entries = []
+		# def on_change(self):
+		# 	msgprint("hi")
+		# 	# التحقق من الشرط
+		# 	if  self.outstanding_amount == 0 and not self.get("custom_make_jl"):
+		# 		# تنفيذ الدالة make_gl_entries
+		# 		gl_entries = []
 
-				self.make_gl_entries(gl_entries)
-				self.db_set("gl_entries", 1) 
-				frappe.msgprint("GL Entries created successfully.")
+		# 		self.make_gl_entries(gl_entries)
+		# 		self.db_set("custom_make_jl", 1) 
+		# 		frappe.msgprint("GL Entries created successfully.")
 
 
 				
