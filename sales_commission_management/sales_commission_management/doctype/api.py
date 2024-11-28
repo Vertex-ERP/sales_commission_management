@@ -5,7 +5,7 @@ import frappe
 def get_commission_details(sales_invoice_name, scheduling_name):
     
     sales_order = frappe.get_value("Sales Invoice Item", {"parent": sales_invoice_name}, "sales_order")
-    
+    frappe.msgprint("hi")
     if not sales_order:
         return []
 
