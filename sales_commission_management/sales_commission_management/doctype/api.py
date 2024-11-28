@@ -150,7 +150,6 @@ import frappe
 #     return dynamic_results
 @frappe.whitelist()
 def get_commission_details(sales_invoice_name, scheduling_name):
-    frappe.msgprint("hi")
 
     sales_order = frappe.get_value("Sales Invoice Item", {"parent": sales_invoice_name}, "sales_order")
     
