@@ -28,9 +28,7 @@ from erpnext.accounts.party import get_party_account
 class CustomSalesInvoice(SalesInvoice):
 		# def on_change(self):
 		# 	msgprint("hi")
-		# 	# التحقق من الشرط
 		# 	if  self.outstanding_amount == 0 and not self.get("custom_make_jl"):
-		# 		# تنفيذ الدالة make_gl_entries
 		# 		gl_entries = []
 
 		# 		self.make_gl_entries(gl_entries)
@@ -40,7 +38,17 @@ class CustomSalesInvoice(SalesInvoice):
 
 				
 		
+		def on_submit(self):
+
 			
+			gl_entries = []
+			# self.make_crm_commission_gl_entries(gl_entries)
+			self.make_gl_entries()
+			
+			# stack = traceback.extract_stack()
+			# for entry in stack:
+			# 	if "on_change" in entry.name:
+			# 		return 	
 
 		
 		def get_gl_entries(self, warehouse_account=None):
@@ -74,20 +82,15 @@ class CustomSalesInvoice(SalesInvoice):
 
 		
 
-		def on_update_after_sumbit(self):
-
-			
-			gl_entries = []
-			self.make_crm_commission_gl_entries(gl_entries)
-			self.make_gl_entries(gl_entries)
-
-			# stack = traceback.extract_stack()
-			# for entry in stack:
-			# 	if "on_change" in entry.name:
-			# 		return 
+		
 			
 				
 		
+		def make_gl_entries(self, gl_entries=None, from_repost=False):
+			from erpnext.accounts.general_ledger import make_gl_entries
+			if not gl_entries:
+				gl_entries = self.get_gl_entries()
+				make_gl_entries(gl_entries, merge_entries=False, from_repost=from_repost)
 			
 		def make_crm_commission_gl_entries(self, gl_entries):
 			try:
@@ -150,6 +153,8 @@ class CustomSalesInvoice(SalesInvoice):
 						item=self,
 					)
 				)
+		
+						
 @frappe.whitelist()
 			
 
@@ -165,7 +170,6 @@ def payment_entry_on_submit(doc, method):
 								if flt(sales_invoice.outstanding_amount) == 0:
 									#frappe.msgprint(_("Processing commission for Invoice: {0}").format(sales_invoice.name))
 									gl_entries = []
-									sales_invoice.make_crm_commission_gl_entries(gl_entries)
 									sales_invoice.make_gl_entries(gl_entries)
 												
 			
