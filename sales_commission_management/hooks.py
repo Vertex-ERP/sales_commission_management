@@ -34,7 +34,14 @@ override_doctype_class = {
     "Sales Invoice": "sales_commission_management.sales_commission_management.overrides.sales_invoice.CustomSalesInvoice"
  
 }
-fixtures = ["Custom Field", "Property Setter"]
+fixtures = [
+    {
+        "doctype": "Custom Field",
+        "filters": [
+            ["fieldname", "in", ["yf_custom_researcher","yf_researcher","yf_party","yf_user","yf_party_type","yf_opportunity_owners"]]
+        ]
+    }
+]
 doc_events = {
     "Payment Entry": {
         "on_submit": "sales_commission_management.sales_commission_management.overrides.sales_invoice.payment_entry_on_submit"

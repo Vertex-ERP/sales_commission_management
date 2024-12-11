@@ -14,20 +14,17 @@ frappe.ui.form.on("Sales Invoice", {
                     const commission_details = r.message;
                     frm.clear_table("yf_commission_details");
 
-                    // تخزين الوعود في مصفوفة
                     const promises = commission_details.map(record => {
                         const { field, value } = record;
 
                         if (value) {
                             console.log(`Adding row for ${field}: ${value}`);
 
-                            // إضافة سطر جديد إلى الجدول
                             let row = frm.add_child("yf_commission_details", {
-                                sales_partner: value,  // إضافة القيمة
-                                type: field            // إضافة النوع
+                                sales_partner: value, 
+                                type: field          
                             });
 
-                            // استدعاء المعدل للحصول على المعدل بناءً على النوع
                             return frappe.call({
                                 method: "sales_commission_management.sales_commission_management.doctype.api.get_rate",
                                 args: {
@@ -36,14 +33,26 @@ frappe.ui.form.on("Sales Invoice", {
                                 }
                             }).then(rate_response => {
                                 if (rate_response.message) {
-                                    // تعيين معدل العمولة
                                     frappe.model.set_value(row.doctype, row.name, 'commission_rate', rate_response.message);
 
-                                    // حساب إجمالي العمولة
-                                    if (frm.doc.total) {
-                                        let total_commission = (rate_response.message / 100) * frm.doc.total;
-                                        frappe.model.set_value(row.doctype, row.name, 'total_commission', total_commission);
+                                    let total_commission = 0;
+
+                                    if (field === "yf_researcher") {
+                                        frm.doc.items.forEach(item => {
+                                            if (item.yf_custom_researcher === value) {
+                                                total_commission += (rate_response.message / 100) * item.amount;
+                                                console.log(`Matched item with custom_researcher: ${item.custom_researcher}, Amount: ${item.amount}`);
+                                                frappe.msgprint(`Matched item for ${value}: ${item.amount}`);
+                                            }
+                                        });
+                                    } else if (frm.doc.total) {
+                                        total_commission = (rate_response.message / 100) * frm.doc.total;
+                                        console.log(`Calculating total commission for type: ${field}, Total: ${frm.doc.total}`);
+
                                     }
+
+                                    // تعيين إجمالي العمولة في الجدول
+                                    frappe.model.set_value(row.doctype, row.name, 'total_commission', total_commission);
                                 } else {
                                     console.log(`No matching rate found for type: ${field}`);
                                 }
