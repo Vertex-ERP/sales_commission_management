@@ -45,17 +45,39 @@ def get_commission_details(sales_invoice_name, scheduling_name):
         elif doctype == "Quotation" and quotation:
             field_value = frappe.get_value(doctype, {"name": quotation}, field)
 
+        # if field == "yf_researcher" and opportunity:
+        #     child_table_data = frappe.get_all(
+        #         "CRM Note",
+        #         filters={"parent": opportunity, "approve": 1},
+        #         fields=["added_by"]
+        #     )
+        #     if child_table_data:
+        #         for note in child_table_data:
+        #             email = note.get('added_by')
+        #             if email:
+        #                 all_values.append({"field": "yf_researcher", "value": email, "earn_commission": earn_commission})  # إضافة اسم الحقل مع القيمة
         if field == "yf_researcher" and opportunity:
             child_table_data = frappe.get_all(
-                "CRM Note",
-                filters={"parent": opportunity, "approve": 1},
-                fields=["added_by"]
+                "Opportunity Item",
+                filters={"parent": opportunity},
+                fields=["yf_custom_researcher"]
             )
             if child_table_data:
                 for note in child_table_data:
-                    email = note.get('added_by')
+                    email = note.get('yf_custom_researcher')
                     if email:
                         all_values.append({"field": "yf_researcher", "value": email, "earn_commission": earn_commission})  # إضافة اسم الحقل مع القيمة
+        if field == "opportunity_owner" and opportunity:
+            custom_owners = frappe.get_all(
+                "Opportunity Owners",
+                filters={"parent": opportunity},
+                fields=["owner_name"]
+            )
+            if custom_owners:
+                for owner in custom_owners:
+                    owner_name = owner.get('owner_name')
+                    if owner_name:
+                        all_values.append({"field": "opportunity_owner", "value": owner_name, "earn_commission": earn_commission})
 
         if field_value:
             all_values.append({"field": field, "value": field_value, "earn_commission": earn_commission})
