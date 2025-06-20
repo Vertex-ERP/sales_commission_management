@@ -29,7 +29,6 @@ doctype_js = {
  
 
  }
-
 # override_doctype_class = {
 #     "Sales Invoice": "sales_commission_management.sales_commission_management.overrides.sales_invoice.CustomSalesInvoice"
  
@@ -38,7 +37,7 @@ fixtures = [
     {
         "doctype": "Custom Field",
         "filters": [
-            ["fieldname", "in", ["yf_researcher","yf_party","yf_user","yf_party_type","yf_opportunity_owners","yf_custom_item","yf_added_by_id","yf_researchers"]]
+            ["fieldname", "in", ["yf_opportunity_owners","yf_scheduling_name","yf_commission_details","yf_researcher","yf_party","yf_user","yf_party_type","yf_custom_item","yf_added_by_id","yf_researchers","custom_description","custom_item_code","custom_approved","custom_commission_rate"]]
         ]
     }
 ]

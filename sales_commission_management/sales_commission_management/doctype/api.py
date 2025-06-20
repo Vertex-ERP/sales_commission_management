@@ -25,8 +25,49 @@ def get_commission_details(sales_invoice_name, scheduling_name):
         filters={"parent": scheduling_name},
         fields=["doctype_name", "doctype_field", "earn_commission"]
     )
+    contains_lead = any(record["doctype_name"] == "Lead" for record in scheduling_records)
+    contains_opportunity = any(record["doctype_name"] == "Opportunity" for record in scheduling_records)
+
+    lead_value = None
+    opp_value = None
+
+    if contains_lead:
+        lead_name = frappe.get_value("Opportunity", {"name": opportunity}, "party_name")
+        if lead_name:
+            lead_value = frappe.get_value("Lead", {"name": lead_name}, "lead_owner")  
+
+    if contains_opportunity:
+        opp_value = frappe.get_value("Opportunity", {"name": opportunity}, "opportunity_owner")  # صاحب الـ Opportunity
+
+   
+    all_values = []
+    if lead_value and opp_value:
+        if str(lead_value).strip() == str(opp_value).strip():
+            all_values.append({
+                "field": "opportunity_owner",
+                "value": opp_value,
+            })
+        else:
+            all_values.append({
+                "field": "opportunity_owner",
+                "value": opp_value,
+            })
+            all_values.append({
+                "field": "lead_owner",
+                "value": lead_value,
+            })
+    elif lead_value:
+        all_values.append({
+            "field": "lead_owner",
+            "value": lead_value,
+        })
+    elif opp_value:
+        all_values.append({
+            "field": "opportunity_owner",
+            "value": opp_value,
+        })
+
     
-    all_values = [] 
     repeated_values = [] 
     unique_values = [] 
     custom_item = []
@@ -45,31 +86,42 @@ def get_commission_details(sales_invoice_name, scheduling_name):
         elif doctype == "Opportunity" and opportunity:
             opp_value = frappe.get_value(doctype, {"name": opportunity}, field)
         
-        if lead_value and opp_value:
-            if lead_value == opp_value :
-                    all_values.append({
-                        "field": "opportunity_owner", 
-                        "value": opp_value, 
-                    })
-            else:
-                    all_values.append({
-                        "field": "opportunity_owner", 
-                        "value": opp_value, 
-                    })
-                    all_values.append({
-                        "field": "lead_owner", 
-                        "value": lead_value, 
-                    })
-        elif lead_value:  
-            all_values.append({
-                "field": "lead_owner", 
-                "value": lead_value, 
-            })
-        elif opp_value:  
-            all_values.append({
-                "field": "opportunity_owner", 
-                "value": opp_value, 
-            })            
+        # if lead_value and opp_value:
+        #     frappe.msgprint(f"Comparing lead_owner: {lead_value} and opportunity_owner: {opp_value}")
+
+        #     if lead_value == opp_value :
+        #             frappe.msgprint(f"Adding both lead_owner ({lead_value}) and opportunity_owner ({opp_value})")
+
+        #             all_values.append({
+        #                 "field": "opportunity_owner", 
+        #                 "value": opp_value, 
+        #             })
+        #     else:
+        #             frappe.msgprint(f"Lead and Opportunity values are the same ({opp_value}), adding only opportunity_owner")
+
+        #             all_values.append({
+        #                 "field": "opportunity_owner", 
+        #                 "value": opp_value, 
+        #             })
+        #             all_values.append({
+        #                 "field": "lead_owner", 
+        #                 "value": lead_value, 
+        #             })
+        # elif lead_value:  
+        #     frappe.msgprint(f"Adding lead_owner: {lead_value}")
+
+        #     all_values.append({
+        #         "field": "lead_owner", 
+        #         "value": lead_value, 
+        #     })
+        # elif opp_value: 
+        #     frappe.msgprint(f"Adding opportunity_owner: {opp_value}")
+ 
+        #     all_values.append({
+        #         "field": "opportunity_owner", 
+        #         "value": opp_value, 
+        #     })            
+
 
 
           
@@ -82,7 +134,7 @@ def get_commission_details(sales_invoice_name, scheduling_name):
         if field == "yf_researcher" and opportunity:
             child_table_data = frappe.get_all(
                 "CRM Note",
-                filters={"parent": opportunity},
+                filters={"parent": opportunity,"custom_approved": 1},
                 fields=["added_by", "yf_custom_item","yf_added_by_id"]
             )
             if child_table_data:
