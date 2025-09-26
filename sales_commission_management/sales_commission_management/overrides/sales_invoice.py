@@ -1,175 +1,167 @@
-# Copyright (c) 2024, alaalsalam Pvt. Ltd. and Contributors
-# License: GNU General Public License v3. See license.txt
-
 import frappe
-from frappe.utils import  cint,flt, get_link_to_form
-from frappe import _, msgprint, throw
-import erpnext
-import traceback
-
-
-from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice,make_regional_gl_entries
-from erpnext.accounts.utils import  get_account_currency
-from erpnext.assets.doctype.asset.depreciation import (
-	depreciate_asset,
-	get_disposal_account_and_cost_center,
-	get_gl_entries_on_asset_disposal,
-	get_gl_entries_on_asset_regain,
-	reset_depreciation_schedule,
-	reverse_depreciation_entry_made_after_disposal,
-)
-from erpnext.assets.doctype.asset_activity.asset_activity import add_asset_activity
-from erpnext.accounts.general_ledger import (
-    make_gl_entries,
-    merge_similar_entries,
-)
+from frappe import _
+from frappe.utils import flt
+from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice, make_regional_gl_entries
+from erpnext.accounts.general_ledger import make_gl_entries as post_gl_entries
 from erpnext.accounts.party import get_party_account
 
 class CustomSalesInvoice(SalesInvoice):
-		# def on_change(self):
-		# 	msgprint("hi")
-		# 	if  self.outstanding_amount == 0 and not self.get("custom_make_jl"):
-		# 		gl_entries = []
+	def on_change(self):
+		# رحّل عمولة مرة واحدة فقط بعد تمام السداد (اختياري؛ يمكنك حذف on_change والاعتماد على هوك الدفع)
+		try:
+			if flt(self.outstanding_amount) == 0 and not self.get("custom_make_jl"):
+				if self.post_commission_gl_entries():
+					self.db_set("custom_make_jl", 1)
+					frappe.msgprint(_("Commission GL Entries created successfully."))
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "CustomSalesInvoice.on_change")
 
-		# 		self.make_gl_entries(gl_entries)
-		# 		self.db_set("custom_make_jl", 1) 
-		# 		frappe.msgprint("GL Entries created successfully.")
+	# def on_submit(self):
+	# 	super().on_submit()
 
+	def get_gl_entries(self, warehouse_account=None):
+		gl_entries = []
+		self.make_customer_gl_entry(gl_entries)
+		self.make_tax_gl_entries(gl_entries)
+		self.make_internal_transfer_gl_entries(gl_entries)
+		self.make_item_gl_entries(gl_entries)
+		self.make_precision_loss_gl_entry(gl_entries)
+		self.make_discount_gl_entries(gl_entries)
 
-				
-		
-		def on_submit(self):
+		gl_entries = make_regional_gl_entries(gl_entries, self)
 
-			
-			gl_entries = []
-			# self.make_crm_commission_gl_entries(gl_entries)
-			self.make_gl_entries()
-			
-			# stack = traceback.extract_stack()
-			# for entry in stack:
-			# 	if "on_change" in entry.name:
-			# 		return 	
+		from erpnext.accounts.general_ledger import merge_similar_entries
+		gl_entries = merge_similar_entries(gl_entries)
 
-		
-		def get_gl_entries(self, warehouse_account=None):
-			from erpnext.accounts.general_ledger import merge_similar_entries
+		self.make_loyalty_point_redemption_gle(gl_entries)
+		self.make_pos_gl_entries(gl_entries)
+		self.make_write_off_gl_entry(gl_entries)
+		self.make_gle_for_rounding_adjustment(gl_entries)
 
-			gl_entries = []
+		# إن كانت الفاتورة مسددة بالكامل لحظيًا، أضف قيود العمولة ضمن نفس الدفعة
+		if flt(self.outstanding_amount) == 0:
+			self._append_commission_gl_entries(gl_entries)
 
-			self.make_customer_gl_entry(gl_entries)
+		return gl_entries
 
-			self.make_tax_gl_entries(gl_entries)
+	def make_gl_entries(self, gl_entries=None, from_repost=False):
+		if not gl_entries:
+			gl_entries = self.get_gl_entries()
+		if not gl_entries:
+			return
+		post_gl_entries(gl_entries, merge_entries=False, from_repost=from_repost)
 
-			self.make_internal_transfer_gl_entries(gl_entries)
+	def _append_commission_gl_entries(self, gl_entries: list) -> None:
+		"""يُضيف قيود العمولة باتجاه صحيح: مدين مصروف، دائن طرف/التزام."""
+		try:
+			cs = frappe.get_cached_doc("Commission Settings", "Commission Settings")
+		except frappe.DoesNotExistError:
+			return
+		if not cs.make_gl:
+			return
+		if not cs.get("sales_team_account"):
+			frappe.throw(_("Please set Commission Expense (sales_team_account) in Commission Settings."))
+		# ملاحظة: sales_account يُستخدم كـ fallback دائن لو لم نجد حساب طرف
+		# (يفضّل استخدام حساب طرف ذمم عبر get_party_account)
 
-			self.make_item_gl_entries(gl_entries)
-			self.make_precision_loss_gl_entry(gl_entries)
-			self.make_discount_gl_entries(gl_entries)
+		for row in (self.get("yf_commission_details") or []):
+			amount = flt(row.total_commission)
+			if amount <= 0:
+				continue
 
-			gl_entries = make_regional_gl_entries(gl_entries, self)
+			# حدّد الطرف من Sales Partner
+			party_type = party = None
+			partner = frappe.get_all(
+				"Sales Partner",
+				filters={"yf_user": row.sales_partner},
+				fields=["name", "yf_party_type", "yf_party"],
+				limit=1,
+			)
+			if partner:
+				party_type = partner[0].get("yf_party_type")
+				party = partner[0].get("yf_party")
 
-			# merge gl entries before adding pos entries
-			gl_entries = merge_similar_entries(gl_entries)
+			# حاول استعمال حساب طرف آليًا؛ وإلا استخدم حساب التزام عام من الإعدادات (sales_account)
+			credit_account = None
+			credit_party_type = None
+			credit_party = None
 
-			self.make_loyalty_point_redemption_gle(gl_entries)
-			self.make_pos_gl_entries(gl_entries)
+			if party_type and party:
+				try:
+					credit_account = get_party_account(party_type, party, self.company)
+					credit_party_type = party_type
+					credit_party = party
+				except Exception:
+					credit_account = None
 
-			self.make_write_off_gl_entry(gl_entries)
-			self.make_gle_for_rounding_adjustment(gl_entries)
-			self.make_crm_commission_gl_entries(gl_entries)
-			return gl_entries
+			if not credit_account:
+				if not cs.get("sales_account"):
+					frappe.throw(_("Please set Commission Liability (sales_account) in Commission Settings."))
+				credit_account = cs.sales_account  # حساب التزام/ذمم عامة بدون party
 
-
-		
-
-		
-			
-				
-		
-		def make_gl_entries(self, gl_entries=None, from_repost=False):
-			from erpnext.accounts.general_ledger import make_gl_entries
-			if not gl_entries:
-				gl_entries = self.get_gl_entries()
-				make_gl_entries(gl_entries, merge_entries=False, from_repost=from_repost)
-			
-		def make_crm_commission_gl_entries(self, gl_entries):
-			try:
-				commission_settings = frappe.get_cached_doc('Commission Settings', 'Commission Settings')
-			except frappe.DoesNotExistError:
-				return
-
-			if not commission_settings.make_gl:
-				return
-			
-			if self.outstanding_amount != 0:
-				
-				return
-
-			for yf_commission_details in self.get("yf_commission_details"):
-				sales_person = yf_commission_details.sales_partner
-				commission_rate = yf_commission_details.commission_rate
-				commission_amount = yf_commission_details.total_commission
-
-				if commission_amount > 0:
-					if not commission_settings.commission_account:
-						frappe.throw(_("Please define a commission account in Commission Settings."))
-				sales_partner_doc = frappe.get_all("Sales Partner", filters={"yf_user": sales_person}, fields=["name", "yf_party_type","yf_party"])
-				
-				if not sales_partner_doc:
-					frappe.throw(_("Sales Partner details are missing for user ID {0}.").format(sales_person))
-					
-				party_type = sales_partner_doc[0]["yf_party_type"]
-				party = sales_partner_doc[0]["yf_party"]	
-
-				# account_currency = get_account_currency(commission_settings.commission_account)
-							
-				gl_entries.append(
-					self.get_gl_dict(
-						{
-							"account": commission_settings.sales_account,
-							"credit": flt(commission_amount),
-							"credit_in_account_currency": flt(commission_amount),
-							"against": commission_settings.sales_team_account,
-						},
-						# account_currency,
-						item=self,
-					)
+			# (1) مدين: مصروف عمولة
+			gl_entries.append(
+				self.get_gl_dict(
+					{
+						"account": cs.sales_team_account,     # مصروف العمولة
+						"cost_center": cs.cost_center,
+						"debit": amount,
+						"debit_in_account_currency": amount,
+						"against": credit_account,
+					},
+					item=self,
 				)
+			)
 
-					
-				gl_entries.append(
-					self.get_gl_dict(
-						{
-							"account": commission_settings.sales_team_account,
-							"cost_center": commission_settings.cost_center,
-							"debit": flt(commission_amount),
-							"debit_in_account_currency": flt(commission_amount),
-							"against": commission_settings.sales_account,
-							"party_type": party_type,
-							"party": party,
-							# "user_remark": _("Commission for {0}: {1}").format(sales_person, commission_amount),
-						},
-						# account_currency,
-						item=self,
-					)
-				)
-		
-						
+			# (2) دائن: حساب الطرف (إن وُجد) أو حساب التزام عام
+			credit_line = {
+				"account": credit_account,
+				"credit": amount,
+				"credit_in_account_currency": amount,
+				"against": cs.sales_team_account,
+			}
+			# اربط الطرف فقط إذا كان القيد على حساب ذمم طرف
+			if credit_party_type and credit_party:
+				credit_line.update({
+					"party_type": credit_party_type,
+					"party": credit_party,
+				})
+
+			gl_entries.append(self.get_gl_dict(credit_line, item=self))
+
+	def post_commission_gl_entries(self) -> bool:
+		"""ترحيل قيود العمولة فقط بعد السداد (بدون إعادة قيود الفاتورة)."""
+		try:
+			cs = frappe.get_cached_doc("Commission Settings", "Commission Settings")
+		except frappe.DoesNotExistError:
+			return False
+		if not cs.make_gl or flt(self.outstanding_amount) != 0:
+			return False
+
+		gl_entries = []
+		self._append_commission_gl_entries(gl_entries)
+		if not gl_entries:
+			return False
+
+		post_gl_entries(gl_entries, merge_entries=False, from_repost=False)
+		return True
+
+
 @frappe.whitelist()
-			
-
-	
 def payment_entry_on_submit(doc, method):
-			if doc.references:
-				for reference in doc.references:
-					if reference.reference_doctype == "Sales Invoice":
-						sales_invoice = frappe.get_doc("Sales Invoice", reference.reference_name)
+	"""بعد اعتماد سند الدفع: إذا أصبح الـ Sales Invoice مسددًا بالكامل ولم تُرحّل عمولته، رحّل عمولته الآن جهة الذمم/الالتزام."""
+	try:
+		for ref in (doc.references or []):
+			if ref.reference_doctype != "Sales Invoice" or flt(ref.allocated_amount) <= 0:
+				continue
 
-						if flt(reference.allocated_amount) > 0:
-							if reference.reference_name == sales_invoice.name:
-								if flt(sales_invoice.outstanding_amount) == 0:
-									#frappe.msgprint(_("Processing commission for Invoice: {0}").format(sales_invoice.name))
-									gl_entries = []
-									sales_invoice.make_gl_entries(gl_entries)
-												
-			
+			sinv = frappe.get_doc("Sales Invoice", ref.reference_name)
+
+			# أعد تحميل آخر حالة رصيد للتأكد
+			sinv.reload()
+
+			if flt(sinv.outstanding_amount) == 0 and not sinv.get("custom_make_jl"):
+				if sinv.post_commission_gl_entries():
+					sinv.db_set("custom_make_jl", 1)
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "payment_entry_on_submit")

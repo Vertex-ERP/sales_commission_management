@@ -29,10 +29,10 @@ doctype_js = {
  
 
  }
-# override_doctype_class = {
-#     "Sales Invoice": "sales_commission_management.sales_commission_management.overrides.sales_invoice.CustomSalesInvoice"
+override_doctype_class = {
+    "Sales Invoice": "sales_commission_management.sales_commission_management.overrides.sales_invoice.CustomSalesInvoice"
  
-# }
+}
 fixtures = [
     {
         "doctype": "Custom Field",

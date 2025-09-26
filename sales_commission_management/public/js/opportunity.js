@@ -187,29 +187,41 @@ edit_note(edit_btn) {
                 default: current_note.custom_approved || 0
             }
         ],
-        primary_action: function() {
-            var data = d.get_values();
-            frappe.call({
-                method: 'sales_commission_management.api.edit_note',
-                args: {
-                    note: data.note,
-                    custom_item_code: data.custom_item_code,
-                    custom_description: data.custom_description,
-                    custom_commission_rate: data.custom_commission_rate,
-                    custom_approved: data.custom_approved,
-                    docname: me.frm.doc.name,
-                    row_id: row_id,
-                },
-                freeze: true,
-                callback: function(r) {
-                    if (!r.exc) {
-                        me.frm.refresh_field("notes");
-                        me.refresh();
-                        d.hide();
-                    }
-                },
-            });
+primary_action: function() {
+    var data = d.get_values();
+    frappe.call({
+        method: 'sales_commission_management.api.edit_note',
+        args: {
+            note: data.note,
+            custom_item_code: data.custom_item_code,
+            custom_description: data.custom_description,
+            custom_commission_rate: data.custom_commission_rate,
+            custom_approved: data.custom_approved,
+            docname: me.frm.doc.name,
+            row_id: row_id,
         },
+        freeze: true,
+        callback: function(r) {
+            if (!r.exc) {
+                me.frm.refresh_field("notes");
+                me.refresh();
+                d.hide();
+
+                // ✅ التحقق من الموافقة، ثم فتح نافذة Item Details
+                if (data.custom_approved === 1) {
+                    // نحتاج تحويل row_id إلى اسم فعلي للـ child row من الفورم
+                    const note_row = (me.frm.doc.notes || []).find(n => String(n.name) === String(row_id));
+                    if (note_row) {
+                        open_item_dialog1(me.frm, "CRM Note", note_row.name);
+                    } else {
+                        console.warn("Could not find row after update for open_item_dialog1");
+                    }
+                }
+            }
+        },
+    });
+},
+
         primary_action_label: __("Save"),
     });
     d.show();
@@ -329,7 +341,11 @@ frappe.ui.form.on('CRM Note', {
 
 
 
-function open_item_dialog1(frm, cdt, cdn) {
+function open_item_dialog1(frm, cdt, cdn) { 
+    console.log("Triggered open_item_dialog1 from edit_note");
+
+    console.log("Triggered open_item_dialog1");
+
     const child_row = frappe.get_doc(cdt, cdn);
     const custom_item_code = child_row.custom_item_code || '';  
     const added_by = child_row.added_by || '';
@@ -361,10 +377,15 @@ function open_item_dialog1(frm, cdt, cdn) {
             show_item_dialog(frm, item_data, researchers_data, cdt, cdn);
 
         }
+
     });
+    console.log("Calling show_item_dialog with:", item_data, researchers_data);
+
 }
 
 function show_item_dialog(frm, item_data, researchers_data, cdt, cdn) {
+    console.log("Inside show_item_dialog");
+
     const dialog = new frappe.ui.Dialog({
         title: __('Item Details'),
         fields: [
